@@ -1,58 +1,73 @@
 package models;
 
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
-
 public class Produto {
 
-    // Formatadores estáticos e thread-safe para evitar alocações desnecessárias
-    private static final DateTimeFormatter formatadorData = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final DecimalFormat formatadorDecimal = new DecimalFormat("R$ #,##0.00", new DecimalFormatSymbols(new Locale("pt", "BR")));
-
     private int idProduto;
-    private String nomeProduto;
+    private int idCategoria;
+    private String nome;
+    private String descricao;
     private double precoUnitario;
-    private String categoria;
-    private LocalDate dataValidade;
-    private int quantidade;
+    private int estoque;
+    private boolean ativo;
 
-    /* Construtores */
     public Produto() {
     }
 
-    public Produto(int idProduto, String nomeProduto, double precoUnitario, String categoria, LocalDate dataValidade, int quantidade) {
+    public Produto(int idProduto, int idCategoria, String nome, String descricao, double precoUnitario, int estoque, boolean ativo) {
         setIdProduto(idProduto);
-        setNomeProduto(nomeProduto);
+        setIdCategoria(idCategoria);
+        setNome(nome);
+        setDescricao(descricao);
         setPrecoUnitario(precoUnitario);
-        setCategoria(categoria);
-        setDataValidade(dataValidade);
-        setQuantidade(quantidade);
+        setEstoque(estoque);
+        setAtivo(ativo);
     }
 
-    /* Getters e Setters */
     public int getIdProduto() {
         return idProduto;
     }
 
     public void setIdProduto(int idProduto) {
-        if (idProduto <= 0) {
-            throw new IllegalArgumentException("ID do produto deve ser maior que zero.");
+        if (idProduto < 0) {
+            throw new IllegalArgumentException("O ID do produto não pode ser negativo.");
         }
         this.idProduto = idProduto;
     }
 
-    public String getNomeProduto() {
-        return nomeProduto;
+    public int getIdCategoria() {
+        return idCategoria;
     }
 
-    public void setNomeProduto(String nomeProduto) {
-        if (nomeProduto == null || nomeProduto.trim().isEmpty()) {
-            throw new IllegalArgumentException("Nome do produto não pode ser vazio.");
+    public void setIdCategoria(int idCategoria) {
+        if (idCategoria <= 0) {
+            throw new IllegalArgumentException("O produto deve estar associado a uma categoria válida.");
         }
-        this.nomeProduto = nomeProduto.trim();
+        this.idCategoria = idCategoria;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        if (nome == null || nome.trim().isEmpty()) {
+            throw new IllegalArgumentException("O nome do produto não pode ser vazio.");
+        }
+        if (nome.length() > 100) {
+            throw new IllegalArgumentException("O nome do produto deve ter no máximo 100 caracteres.");
+        }
+        this.nome = nome.trim();
+    }
+
+    public String getDescricao() {
+        return descricao;
+    }
+
+    public void setDescricao(String descricao) {
+        if (descricao != null && descricao.length() > 255) {
+            throw new IllegalArgumentException("A descrição do produto deve ter no máximo 255 caracteres.");
+        }
+        this.descricao = descricao != null ? descricao.trim() : null;
     }
 
     public double getPrecoUnitario() {
@@ -60,88 +75,28 @@ public class Produto {
     }
 
     public void setPrecoUnitario(double precoUnitario) {
-        if (precoUnitario < 0) {
-            throw new IllegalArgumentException("Preço inválido.");
+        if (precoUnitario < 0.0) {
+            throw new IllegalArgumentException("O preço unitário não pode ser negativo.");
         }
         this.precoUnitario = precoUnitario;
     }
 
-    public String getCategoria() {
-        return categoria;
+    public int getEstoque() {
+        return estoque;
     }
 
-    public void setCategoria(String categoria) {
-        this.categoria = categoria != null ? categoria.trim() : "";
-    }
-
-    public LocalDate getDataValidade() {
-        return dataValidade;
-    }
-
-    public void setDataValidade(LocalDate dataValidade) {
-        this.dataValidade = dataValidade;
-    }
-
-    public int getQuantidade() {
-        return quantidade;
-    }
-
-    public void setQuantidade(int quantidade) {
-        if (quantidade < 0) {
-            throw new IllegalArgumentException("Quantidade inválida.");
+    public void setEstoque(int estoque) {
+        if (estoque < 0) {
+            throw new IllegalArgumentException("O estoque não pode ser negativo.");
         }
-        this.quantidade = quantidade;
+        this.estoque = estoque;
     }
 
-    /* Métodos de Domínio */
-    public boolean possuiEstoque() {
-        return quantidade > 0;
+    public boolean isAtivo() {
+        return ativo;
     }
 
-    public void reduzirEstoque(int valorSubtrair) {
-        if (valorSubtrair <= 0) {
-            throw new IllegalArgumentException("A quantidade a ser reduzida deve ser maior do que zero.");
-        }
-        if (this.quantidade < valorSubtrair) {
-            throw new IllegalArgumentException("Estoque insuficiente.");
-        }
-        this.quantidade -= valorSubtrair;
+    public void setAtivo(boolean ativo) {
+        this.ativo = ativo;
     }
-
-    public void adicionarEstoque(int valorSomar) {
-        if (valorSomar <= 0) {
-            throw new IllegalArgumentException("A quantidade a ser adicionada deve ser maior do que zero.");
-        }
-        this.quantidade += valorSomar;
-    }
-
-    /* Sobrescritas de Objetos Java */
-    @Override
-    public String toString() {
-        String validade = dataValidade != null ? formatadorData.format(dataValidade) : "Não informada";
-
-        // Sincronização necessária pois DecimalFormat não é thread-safe por padrão
-        String precoFormatado;
-        synchronized (formatadorDecimal) {
-            precoFormatado = formatadorDecimal.format(precoUnitario);
-        }
-
-        return """
-               
-                ID Produto: %d
-                Nome: %s
-                Categoria: %s
-                Preço: %s
-                Quantidade: %d
-                Validade: %s
-                -------------------------------
-                """.formatted(
-                idProduto,
-                nomeProduto,
-                categoria,
-                precoFormatado,
-                quantidade,
-                validade);
-    }
-
 }

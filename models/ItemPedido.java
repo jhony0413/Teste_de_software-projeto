@@ -1,35 +1,44 @@
 package models;
 
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.util.Locale;
-
 public class ItemPedido {
 
-    private static final DecimalFormat formatadorDecimal = new DecimalFormat("R$ #,##0.00", new DecimalFormatSymbols(new Locale("pt", "BR")));
-
-    private Produto produto;
+    private int idPedido;
+    private int idProduto;
     private int quantidade;
+    private double precoUnitario;
+    private double subtotal;
 
-    /* Construtores */
     public ItemPedido() {
     }
 
-    public ItemPedido(Produto produto, int quantidade) {
-        setProduto(produto);
+    public ItemPedido(int idPedido, int idProduto, int quantidade, double precoUnitario, double subtotal) {
+        setIdPedido(idPedido);
+        setIdProduto(idProduto);
         setQuantidade(quantidade);
+        setPrecoUnitario(precoUnitario);
+        setSubtotal(subtotal);
     }
 
-    /* Getters e Setters com Validações */
-    public Produto getProduto() {
-        return produto;
+    public int getIdPedido() {
+        return idPedido;
     }
 
-    public void setProduto(Produto produto) {
-        if (produto == null) {
-            throw new IllegalArgumentException("O produto não pode ser nulo.");
+    public void setIdPedido(int idPedido) {
+        if (idPedido < 0) {
+            throw new IllegalArgumentException("ID do pedido inválido para o item.");
         }
-        this.produto = produto;
+        this.idPedido = idPedido;
+    }
+
+    public int getIdProduto() {
+        return idProduto;
+    }
+
+    public void setIdProduto(int idProduto) {
+        if (idProduto <= 0) {
+            throw new IllegalArgumentException("ID do produto inválido para o item.");
+        }
+        this.idProduto = idProduto;
     }
 
     public int getQuantidade() {
@@ -43,28 +52,25 @@ public class ItemPedido {
         this.quantidade = quantidade;
     }
 
-    /* Métodos de Domínio */
-    public double getSubtotal() {
-        return produto.getPrecoUnitario() * quantidade;
+    public double getPrecoUnitario() {
+        return precoUnitario;
     }
 
-    /* Sobrescritas de Objetos Java */
-    @Override
-    public String toString() {
-        String subtotalFormatado;
-        synchronized (formatadorDecimal) {
-            subtotalFormatado = formatadorDecimal.format(getSubtotal());
+    public void setPrecoUnitario(double precoUnitario) {
+        if (precoUnitario < 0.0) {
+            throw new IllegalArgumentException("O preço unitário do item não pode ser negativo.");
         }
+        this.precoUnitario = precoUnitario;
+    }
 
-        return """
-               
-                Produto: %s
-                Quantidade: %d
-                Subtotal: %s
-                -------------------------------
-                """.formatted(
-                produto.getNomeProduto(),
-                quantidade,
-                subtotalFormatado);
+    public double getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(double subtotal) {
+        if (subtotal < 0.0) {
+            throw new IllegalArgumentException("O subtotal do item não pode ser negativo.");
+        }
+        this.subtotal = subtotal;
     }
 }

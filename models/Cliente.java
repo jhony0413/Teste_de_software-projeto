@@ -1,98 +1,29 @@
 package models;
 
-public class Cliente {
+import java.time.LocalDateTime;
 
-    private int idCliente;
-    private String nomeCliente;
-    private String cpf;
-    private boolean ativo;
+public class Cliente extends Pessoa {
 
-    /* Construtores */
+    private LocalDateTime dataCadastro;
+
     public Cliente() {
-        this.ativo = true;
+        super();
+        this.dataCadastro = LocalDateTime.now();
     }
 
-    public Cliente(int idCliente, String nomeCliente, String cpf) {
-        setIdCliente(idCliente);
-        setNomeCliente(nomeCliente);
-        setCpf(cpf);
-        this.ativo = true;
+    public Cliente(int idPessoa, String nome, String cpf, String email, String telefone, boolean ativo, LocalDateTime dataCadastro) {
+        super(idPessoa, nome, cpf, email, telefone, ativo);
+        setDataCadastro(dataCadastro);
     }
 
-    /* Getters e Setters */
-    public int getIdCliente() {
-        return idCliente;
+    public LocalDateTime getDataCadastro() {
+        return dataCadastro;
     }
 
-    public void setIdCliente(int idCliente) {
-        if (idCliente <= 0) {
-            throw new IllegalArgumentException("ID do cliente deve ser maior que zero.");
+    public void setDataCadastro(LocalDateTime dataCadastro) {
+        if (dataCadastro != null && dataCadastro.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("A data de cadastro não pode ser no futuro.");
         }
-        this.idCliente = idCliente;
-    }
-
-    public String getNomeCliente() {
-        return nomeCliente;
-    }
-
-    public void setNomeCliente(String nomeCliente) {
-        if (nomeCliente == null || nomeCliente.trim().isEmpty()) {
-            throw new IllegalArgumentException("Nome do cliente não pode ser vazio.");
-        }
-        this.nomeCliente = nomeCliente.trim();
-    }
-
-    public String getCpf() {
-        return cpf;
-    }
-
-    public void setCpf(String cpf) {
-        if (cpf == null || cpf.trim().isEmpty()) {
-            throw new IllegalArgumentException("CPF é um campo obrigatório.");
-        }
-        String cpfLimpo = cpf.replaceAll("\\D", "");
-        if (cpfLimpo.length() != 11) {
-            throw new IllegalArgumentException("CPF deve conter exatamente 11 dígitos numéricos.");
-        }
-        this.cpf = cpfLimpo;
-    }
-
-    public boolean isAtivo() {
-        return ativo;
-    }
-
-    /* Métodos de Domínio */
-    public void desativar() {
-        this.ativo = false;
-    }
-
-    public void ativar() {
-        this.ativo = true;
-    }
-
-    /* Formatação auxiliar */
-    private String getCpfFormatado() {
-        if (cpf != null && cpf.length() == 11) {
-            return cpf.replaceAll("(\\d{3})(\\d{3})(\\d{3})(\\d{2})", "$1.$2.$3-$4");
-        }
-        return cpf;
-    }
-
-    /* Sobrescritas de Objetos Java */
-    @Override
-    public String toString() {
-        String status = ativo ? "ATIVO" : "INATIVO";
-        return """
-               
-                ID Cliente: %d
-                Nome: %s
-                CPF: %s
-                Status: %s
-                -------------------------------
-                """.formatted(
-                idCliente,
-                nomeCliente,
-                getCpfFormatado(),
-                status);
+        this.dataCadastro = dataCadastro != null ? dataCadastro : LocalDateTime.now();
     }
 }

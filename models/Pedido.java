@@ -1,181 +1,79 @@
 package models;
 
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import java.time.LocalDateTime;
 
 public class Pedido {
 
-    public static final int PENDENTE = 1;
-    public static final int FINALIZADO = 2;
-    public static final int CANCELADO = 3;
-
-    private static final DecimalFormat formatadorDecimal = new DecimalFormat("R$ #,##0.00", new DecimalFormatSymbols(new Locale("pt", "BR")));
-
     private int idPedido;
-    private Cliente cliente;
-    private final List<ItemPedido> itens;
-    private int status;
+    private int idCliente;
+    private int idVendedor;
+    private LocalDateTime dataEmissao;
+    private double valorTotal;
 
-    /* Construtores */
     public Pedido() {
-        this.itens = new ArrayList<>();
-        this.status = PENDENTE;
+        this.dataEmissao = LocalDateTime.now();
     }
 
-    public Pedido(int idPedido, Cliente cliente) {
-        this();
+    public Pedido(int idPedido, int idCliente, int idVendedor, LocalDateTime dataEmissao, double valorTotal) {
         setIdPedido(idPedido);
-        setCliente(cliente);
+        setIdCliente(idCliente);
+        setIdVendedor(idVendedor);
+        setDataEmissao(dataEmissao);
+        setValorTotal(valorTotal);
     }
 
-    /* Getters e Setters com Validações */
     public int getIdPedido() {
         return idPedido;
     }
 
     public void setIdPedido(int idPedido) {
-        if (idPedido <= 0) {
-            throw new IllegalArgumentException("ID do pedido deve ser maior que zero.");
+        if (idPedido < 0) {
+            throw new IllegalArgumentException("O ID do pedido não pode ser negativo.");
         }
         this.idPedido = idPedido;
     }
 
-    public Cliente getCliente() {
-        return cliente;
+    public int getIdCliente() {
+        return idCliente;
     }
 
-    public void setCliente(Cliente cliente) {
-        if (cliente == null) {
-            throw new IllegalArgumentException("Cliente não pode ser nulo.");
+    public void setIdCliente(int idCliente) {
+        if (idCliente <= 0) {
+            throw new IllegalArgumentException("O pedido deve estar associado a um cliente válido.");
         }
-        this.cliente = cliente;
+        this.idCliente = idCliente;
     }
 
-    public List<ItemPedido> getItens() {
-        return Collections.unmodifiableList(itens);
+    public int getIdVendedor() {
+        return idVendedor;
     }
 
-    public int getStatus() {
-        return status;
+    public void setIdVendedor(int idVendedor) {
+        if (idVendedor <= 0) {
+            throw new IllegalArgumentException("O pedido deve estar associado a um vendedor válido.");
+        }
+        this.idVendedor = idVendedor;
     }
 
-    /* Métodos de Domínio */
-    public void adicionarItem(Produto produto, int quantidade) {
-        if (status != PENDENTE) {
-            throw new IllegalStateException("Não é possível alterar um pedido que não está pendente.");
-        }
-        if (produto == null) {
-            throw new IllegalArgumentException("Produto não pode ser nulo.");
-        }
+    public LocalDateTime getDataEmissao() {
+        return dataEmissao;
+    }
 
-        // Tenta localizar se o produto já existe no pedido
-        for (ItemPedido item : itens) {
-            if (item.getProduto().getIdProduto() == produto.getIdProduto()) {
-                produto.reduzirEstoque(quantidade);
-                item.setQuantidade(item.getQuantidade() + quantidade);
-                return;
-            }
+    public void setDataEmissao(LocalDateTime dataEmissao) {
+        if (dataEmissao != null && dataEmissao.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("A data de emissão não pode ser no futuro.");
         }
-
-        // Se for um novo produto no pedido
-        produto.reduzirEstoque(quantidade);
-        ItemPedido novoItem = new ItemPedido(produto, quantidade);
-        itens.add(novoItem);
+        this.dataEmissao = dataEmissao != null ? dataEmissao : LocalDateTime.now();
     }
 
     public double getValorTotal() {
-        double total = 0;
-        for (ItemPedido item : itens) {
-            total += item.getSubtotal();
-        }
-        return total;
+        return valorTotal;
     }
 
-    public void finalizar() {
-        if (status != PENDENTE) {
-            throw new IllegalStateException("Somente pedidos pendentes podem ser finalizados.");
+    public void setValorTotal(double valorTotal) {
+        if (valorTotal < 0.0) {
+            throw new IllegalArgumentException("O valor total do pedido não pode ser negativo.");
         }
-        if (itens.isEmpty()) {
-            throw new IllegalStateException("Não é possível finalizar um pedido sem itens.");
-        }
-        this.status = FINALIZADO;
-    }
-
-    public void cancelar() {
-        if (status == FINALIZADO) {
-            throw new IllegalStateException("Pedido finalizado não pode ser cancelado.");
-        }
-        if (status == CANCELADO) {
-            throw new IllegalStateException("Pedido já está cancelado.");
-        }
-
-        // Devolve os itens ao estoque
-        for (ItemPedido item : itens) {
-            item.getProduto().adicionarEstoque(item.getQuantidade());
-        }
-        this.status = CANCELADO;
-    }
-
-    public void limparItens() {
-        if (status != PENDENTE) {
-            throw new IllegalStateException("Somente pedidos pendentes podem ter os itens limpos.");
-        }
-        for (ItemPedido item : itens) {
-            item.getProduto().adicionarEstoque(item.getQuantidade());
-        }
-        itens.clear();
-    }
-
-    public String getStatusExtenso() {
-        return switch (status) {
-            case PENDENTE ->
-                "PENDENTE";
-            case FINALIZADO ->
-                "FINALIZADO";
-            case CANCELADO ->
-                "CANCELADO";
-            default ->
-                "DESCONHECIDO";
-        };
-    }
-
-    /* Sobrescritas de Objetos Java */
-    @Override
-    public String toString() {
-        String nomeClienteStr = (cliente != null) ? cliente.getNomeCliente() : "Não informado";
-        String totalFormatado;
-
-        synchronized (formatadorDecimal) {
-            totalFormatado = formatadorDecimal.format(getValorTotal());
-        }
-
-        StringBuilder construtorDeString = new StringBuilder();
-        construtorDeString.append("""
-                                  
-                PEDIDO #%d
-                Cliente: %s
-                Status: %s
-                ITENS:
-                """.formatted(
-                idPedido,
-                nomeClienteStr,
-                getStatusExtenso()));
-
-        for (ItemPedido item : itens) {
-            construtorDeString.append(item).append("\n");
-        }
-
-        construtorDeString.append("""
-                                  
-                -------------------------------
-                TOTAL: %s
-                -------------------------------
-                """.formatted(totalFormatado));
-
-        return construtorDeString.toString();
+        this.valorTotal = valorTotal;
     }
 }
