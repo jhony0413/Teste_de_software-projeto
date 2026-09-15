@@ -26,9 +26,10 @@ public class VendedorDAO {
                 stmtPessoa.setBoolean(5, vendedor.isAtivo());
                 stmtPessoa.executeUpdate();
 
-                ResultSet rs = stmtPessoa.getGeneratedKeys();
-                if (rs.next()) {
-                    vendedor.setIdPessoa(rs.getInt(1));
+                try (ResultSet rs = stmtPessoa.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        vendedor.setIdPessoa(rs.getInt(1));
+                    }
                 }
             }
 
@@ -41,16 +42,26 @@ public class VendedorDAO {
 
             conn.commit();
         } catch (SQLException e) {
-            if (conn != null) try {
-                conn.rollback();
-            } catch (SQLException ex) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
             }
             throw new RuntimeException("Erro ao inserir vendedor: " + e.getMessage(), e);
         } finally {
-            if (conn != null) try {
-                conn.setAutoCommit(true);
-                conn.close();
-            } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -61,6 +72,7 @@ public class VendedorDAO {
                 + "FROM vendedor v JOIN pessoa p ON v.id_pessoa = p.id_pessoa";
 
         try (Connection conn = ConexaoBD.conectar(); PreparedStatement stmt = conn.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
+
             while (rs.next()) {
                 Vendedor v = new Vendedor(
                         rs.getInt("id_pessoa"),
@@ -108,16 +120,26 @@ public class VendedorDAO {
 
             conn.commit();
         } catch (SQLException e) {
-            if (conn != null) try {
-                conn.rollback();
-            } catch (SQLException ex) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
             }
             throw new RuntimeException("Erro ao atualizar vendedor: " + e.getMessage(), e);
         } finally {
-            if (conn != null) try {
-                conn.setAutoCommit(true);
-                conn.close();
-            } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -143,16 +165,26 @@ public class VendedorDAO {
 
             conn.commit();
         } catch (SQLException e) {
-            if (conn != null) try {
-                conn.rollback();
-            } catch (SQLException ex) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
             }
             throw new RuntimeException("Erro ao deletar vendedor: " + e.getMessage(), e);
         } finally {
-            if (conn != null) try {
-                conn.setAutoCommit(true);
-                conn.close();
-            } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -163,8 +195,7 @@ public class VendedorDAO {
                 + "INNER JOIN pessoa p ON v.id_pessoa = p.id_pessoa "
                 + "WHERE v.login = ? AND v.senha_hash = ? AND p.ativo = true";
 
-        try (Connection conn = ConexaoBD.conectar();
-                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = ConexaoBD.conectar(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, login);
             stmt.setString(2, senha);
@@ -176,7 +207,7 @@ public class VendedorDAO {
                             rs.getString("nome"),
                             rs.getString("cpf"),
                             rs.getString("email"),
-                            null,
+                            null, // telefone não retornado na query atual
                             rs.getBoolean("ativo"),
                             rs.getString("login"),
                             rs.getString("senha_hash")
@@ -184,7 +215,7 @@ public class VendedorDAO {
                 }
             }
         } catch (SQLException e) {
-            System.out.println("Erro na autenticação: " + e.getMessage());
+            throw new RuntimeException("Falha na infraestrutura de banco ao tentar autenticar: " + e.getMessage(), e);
         }
         return null;
     }

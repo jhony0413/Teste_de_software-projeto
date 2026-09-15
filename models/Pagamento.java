@@ -40,7 +40,7 @@ public class Pagamento {
     }
 
     public void setIdPedido(int idPedido) {
-        if (idPedido <= 0) {
+        if (idPedido < 0) {
             throw new IllegalArgumentException("O pagamento deve estar associado a um pedido válido.");
         }
         this.idPedido = idPedido;
@@ -67,6 +67,9 @@ public class Pagamento {
     }
 
     public void setDataHora(LocalDateTime dataHora) {
+        if (dataHora != null && dataHora.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("A data e hora do pagamento não podem estar no futuro.");
+        }
         this.dataHora = dataHora != null ? dataHora : LocalDateTime.now();
     }
 

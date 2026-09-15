@@ -8,12 +8,14 @@ public class Fornecedor {
     private String email;
     private String telefone;
     private boolean ativo;
+    private int idVendedor;
 
     public Fornecedor() {
     }
 
-    public Fornecedor(int idFornecedor, String cnpj, String nome, String email, String telefone, boolean ativo) {
+    public Fornecedor(int idFornecedor, int idVendedor, String cnpj, String nome, String email, String telefone, boolean ativo) {
         setIdFornecedor(idFornecedor);
+        setIdVendedor(idVendedor);
         setCnpj(cnpj);
         setNome(nome);
         setEmail(email);
@@ -66,7 +68,7 @@ public class Fornecedor {
     }
 
     public void setEmail(String email) {
-        if (email == null || email.trim().isEmpty() || !email.contains("@")) {
+        if (email == null || !email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
             throw new IllegalArgumentException("E-mail do fornecedor inválido.");
         }
         this.email = email.trim();
@@ -77,7 +79,15 @@ public class Fornecedor {
     }
 
     public void setTelefone(String telefone) {
-        this.telefone = telefone != null ? telefone.trim() : null;
+        if (telefone != null && !telefone.trim().isEmpty()) {
+            String telefoneLimpo = telefone.replaceAll("\\D", "");
+            if (telefoneLimpo.length() < 10 || telefoneLimpo.length() > 11) {
+                throw new IllegalArgumentException("O telefone deve ter 10 ou 11 dígitos.");
+            }
+            this.telefone = telefoneLimpo;
+        } else {
+            this.telefone = null;
+        }
     }
 
     public boolean isAtivo() {
@@ -86,5 +96,16 @@ public class Fornecedor {
 
     public void setAtivo(boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public int getIdVendedor() {
+        return idVendedor;
+    }
+
+    public void setIdVendedor(int idVendedor) {
+        if (idVendedor < 0) {
+            throw new IllegalArgumentException("O ID do vendedor deve ser maior que zero.");
+        }
+        this.idVendedor = idVendedor;
     }
 }

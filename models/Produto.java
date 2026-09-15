@@ -9,12 +9,14 @@ public class Produto {
     private double precoUnitario;
     private int estoque;
     private boolean ativo;
+    private int idVendedor;
 
     public Produto() {
     }
 
-    public Produto(int idProduto, int idCategoria, String nome, String descricao, double precoUnitario, int estoque, boolean ativo) {
+    public Produto(int idProduto, int idVendedor, int idCategoria, String nome, String descricao, double precoUnitario, int estoque, boolean ativo) {
         setIdProduto(idProduto);
+        setIdVendedor(idVendedor);
         setIdCategoria(idCategoria);
         setNome(nome);
         setDescricao(descricao);
@@ -39,7 +41,7 @@ public class Produto {
     }
 
     public void setIdCategoria(int idCategoria) {
-        if (idCategoria <= 0) {
+        if (idCategoria < 0) {
             throw new IllegalArgumentException("O produto deve estar associado a uma categoria válida.");
         }
         this.idCategoria = idCategoria;
@@ -98,5 +100,16 @@ public class Produto {
 
     public void setAtivo(boolean ativo) {
         this.ativo = ativo;
+    }
+
+    public int getIdVendedor() {
+        return idVendedor;
+    }
+
+    public void setIdVendedor(int idVendedor) {
+        if (idVendedor < 0) {
+            throw new IllegalArgumentException("O ID do vendedor deve ser maior que zero.");
+        }
+        this.idVendedor = idVendedor;
     }
 }

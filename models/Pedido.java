@@ -38,7 +38,7 @@ public class Pedido {
     }
 
     public void setIdCliente(int idCliente) {
-        if (idCliente <= 0) {
+        if (idCliente < 0) {
             throw new IllegalArgumentException("O pedido deve estar associado a um cliente válido.");
         }
         this.idCliente = idCliente;
@@ -49,7 +49,7 @@ public class Pedido {
     }
 
     public void setIdVendedor(int idVendedor) {
-        if (idVendedor <= 0) {
+        if (idVendedor < 0) {
             throw new IllegalArgumentException("O pedido deve estar associado a um vendedor válido.");
         }
         this.idVendedor = idVendedor;

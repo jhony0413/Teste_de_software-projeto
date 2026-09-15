@@ -34,6 +34,9 @@ public class HistoricoStatusPedido {
     }
 
     public void setDataAlteracao(LocalDateTime dataAlteracao) {
+        if (dataAlteracao != null && dataAlteracao.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("A data de alteração não pode ser no futuro.");
+        }
         this.dataAlteracao = dataAlteracao != null ? dataAlteracao : LocalDateTime.now();
     }
 

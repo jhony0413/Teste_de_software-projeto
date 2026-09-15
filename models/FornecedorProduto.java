@@ -24,7 +24,7 @@ public class FornecedorProduto {
     }
 
     public void setIdFornecedor(int idFornecedor) {
-        if (idFornecedor <= 0) {
+        if (idFornecedor < 0) {
             throw new IllegalArgumentException("ID do fornecedor inválido.");
         }
         this.idFornecedor = idFornecedor;
@@ -35,7 +35,7 @@ public class FornecedorProduto {
     }
 
     public void setIdProduto(int idProduto) {
-        if (idProduto <= 0) {
+        if (idProduto < 0) {
             throw new IllegalArgumentException("ID do produto inválido.");
         }
         this.idProduto = idProduto;

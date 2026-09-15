@@ -1,6 +1,6 @@
 package models;
 
-public class Pessoa {
+public abstract class Pessoa {
 
     private int idPessoa;
     private String nome;
@@ -58,6 +58,11 @@ public class Pessoa {
         if (cpfLimpo.length() != 11) {
             throw new IllegalArgumentException("O CPF deve conter exatamente 11 dígitos.");
         }
+        /*
+        if (!isCpfValido(cpfLimpo)) {
+            throw new IllegalArgumentException("O CPF informado é inválido.");
+        }
+         */
         this.cpf = cpfLimpo;
     }
 
@@ -69,7 +74,8 @@ public class Pessoa {
         if (email == null || email.trim().isEmpty()) {
             throw new IllegalArgumentException("O e-mail não pode ser nulo ou vazio.");
         }
-        if (!email.contains("@") || !email.contains(".")) {
+
+        if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
             throw new IllegalArgumentException("Formato de e-mail inválido.");
         }
         if (email.length() > 120) {
@@ -83,10 +89,16 @@ public class Pessoa {
     }
 
     public void setTelefone(String telefone) {
-        if (telefone != null && telefone.length() > 20) {
-            throw new IllegalArgumentException("O telefone deve ter no máximo 20 caracteres.");
+        if (telefone != null && !telefone.trim().isEmpty()) {
+
+            String telefoneLimpo = telefone.replaceAll("\\D", "");
+            if (telefoneLimpo.length() < 10 || telefoneLimpo.length() > 11) {
+                throw new IllegalArgumentException("O telefone deve ter 10 ou 11 dígitos (incluindo DDD).");
+            }
+            this.telefone = telefoneLimpo;
+        } else {
+            this.telefone = null;
         }
-        this.telefone = telefone != null ? telefone.trim() : null;
     }
 
     public boolean isAtivo() {
@@ -96,4 +108,51 @@ public class Pessoa {
     public void setAtivo(boolean ativo) {
         this.ativo = ativo;
     }
+
+    /*
+    private boolean isCpfValido(String cpf) {
+
+        if (cpf.equals("00000000000") || cpf.equals("11111111111")
+                || cpf.equals("22222222222") || cpf.equals("33333333333")
+                || cpf.equals("44444444444") || cpf.equals("55555555555")
+                || cpf.equals("66666666666") || cpf.equals("77777777777")
+                || cpf.equals("88888888888") || cpf.equals("99999999999")) {
+            return false;
+        }
+
+        try {
+
+            int soma = 0;
+            int peso = 10;
+            for (int i = 0; i < 9; i++) {
+                int num = (int) (cpf.charAt(i) - 48);
+                soma = soma + (num * peso);
+                peso--;
+            }
+            int digito10Calculado = calcularDigitoVerificador(cpf, 9, 10);
+            int digito11Calculado = calcularDigitoVerificador(cpf, 10, 11);
+
+            int digito10Real = Character.getNumericValue(cpf.charAt(9));
+            int digito11Real = Character.getNumericValue(cpf.charAt(10));
+
+            return digito10Calculado == digito10Real && digito11Calculado == digito11Real;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private int calcularDigitoVerificador(String cpf, int quantidadeDigitos, int pesoInicial) {
+        int soma = 0;
+        int peso = pesoInicial;
+
+        for (int i = 0; i < quantidadeDigitos; i++) {
+            int numero = Character.getNumericValue(cpf.charAt(i));
+            soma += numero * peso;
+            peso--;
+        }
+
+        int resto = 11 - (soma % 11);
+        return (resto == 10 || resto == 11) ? 0 : resto;
+    }
+     */
 }

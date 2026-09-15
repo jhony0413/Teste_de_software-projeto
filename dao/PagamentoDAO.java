@@ -13,6 +13,7 @@ public class PagamentoDAO {
     public void inserir(Pagamento pagamento) {
         String sql = "INSERT INTO pagamento (id_pedido, forma_pagamento, data_hora, valor, status) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = ConexaoBD.conectar(); PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
             stmt.setInt(1, pagamento.getIdPedido());
             stmt.setString(2, pagamento.getFormaPagamento());
             stmt.setTimestamp(3, Timestamp.valueOf(pagamento.getDataHora()));
@@ -20,9 +21,10 @@ public class PagamentoDAO {
             stmt.setString(5, pagamento.getStatus());
             stmt.executeUpdate();
 
-            ResultSet rs = stmt.getGeneratedKeys();
-            if (rs.next()) {
-                pagamento.setIdPagamento(rs.getInt(1));
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    pagamento.setIdPagamento(rs.getInt(1));
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException("Erro ao inserir pagamento: " + e.getMessage(), e);
@@ -33,6 +35,7 @@ public class PagamentoDAO {
         List<Pagamento> lista = new ArrayList<>();
         String sql = "SELECT id_pagamento, id_pedido, forma_pagamento, data_hora, valor, status FROM pagamento";
         try (Connection conn = ConexaoBD.conectar(); PreparedStatement stmt = conn.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
+
             while (rs.next()) {
                 LocalDateTime dataHora = rs.getTimestamp("data_hora") != null ? rs.getTimestamp("data_hora").toLocalDateTime() : null;
                 Pagamento p = new Pagamento(

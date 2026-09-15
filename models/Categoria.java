@@ -6,12 +6,14 @@ public class Categoria {
     private String nome;
     private String descricao;
     private Integer idCategoriaPai;
+    private int idVendedor;
 
     public Categoria() {
     }
 
-    public Categoria(int idCategoria, String nome, String descricao, Integer idCategoriaPai) {
+    public Categoria(int idCategoria, int idVendedor, String nome, String descricao, Integer idCategoriaPai) {
         setIdCategoria(idCategoria);
+        setIdVendedor(idVendedor);
         setNome(nome);
         setDescricao(descricao);
         setIdCategoriaPai(idCategoriaPai);
@@ -62,5 +64,16 @@ public class Categoria {
             throw new IllegalArgumentException("O ID da categoria pai não pode ser negativo.");
         }
         this.idCategoriaPai = idCategoriaPai;
+    }
+
+    public int getIdVendedor() {
+        return idVendedor;
+    }
+
+    public void setIdVendedor(int idVendedor) {
+        if (idVendedor < 0) {
+            throw new IllegalArgumentException("O ID do vendedor deve ser maior que zero.");
+        }
+        this.idVendedor = idVendedor;
     }
 }

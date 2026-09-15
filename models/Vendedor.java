@@ -37,6 +37,9 @@ public class Vendedor extends Pessoa {
         if (senhaHash == null || senhaHash.trim().isEmpty()) {
             throw new IllegalArgumentException("A senha hash não pode ser nula ou vazia.");
         }
-        this.senhaHash = senhaHash;
+        if (senhaHash.length() < 6) {
+            throw new IllegalArgumentException("A senha parece ser inválida ou insegura (mínimo 6 caracteres esperados).");
+        }
+        this.senhaHash = senhaHash.trim();
     }
 }

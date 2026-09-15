@@ -16,7 +16,6 @@ public class ItemPedido {
         setIdProduto(idProduto);
         setQuantidade(quantidade);
         setPrecoUnitario(precoUnitario);
-        setSubtotal(subtotal);
     }
 
     public int getIdPedido() {
@@ -35,7 +34,7 @@ public class ItemPedido {
     }
 
     public void setIdProduto(int idProduto) {
-        if (idProduto <= 0) {
+        if (idProduto < 0) {
             throw new IllegalArgumentException("ID do produto inválido para o item.");
         }
         this.idProduto = idProduto;
@@ -50,6 +49,7 @@ public class ItemPedido {
             throw new IllegalArgumentException("A quantidade do item deve ser maior que zero.");
         }
         this.quantidade = quantidade;
+        atualizarSubtotal();
     }
 
     public double getPrecoUnitario() {
@@ -61,16 +61,14 @@ public class ItemPedido {
             throw new IllegalArgumentException("O preço unitário do item não pode ser negativo.");
         }
         this.precoUnitario = precoUnitario;
+        atualizarSubtotal();
     }
 
     public double getSubtotal() {
         return subtotal;
     }
 
-    public void setSubtotal(double subtotal) {
-        if (subtotal < 0.0) {
-            throw new IllegalArgumentException("O subtotal do item não pode ser negativo.");
-        }
-        this.subtotal = subtotal;
+    private void atualizarSubtotal() {
+        this.subtotal = this.quantidade * this.precoUnitario;
     }
 }

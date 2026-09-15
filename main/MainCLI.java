@@ -5,6 +5,7 @@ import models.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class MainCLI {
@@ -36,8 +37,6 @@ public class MainCLI {
             if (opcao == 1) {
                 if (realizarLogin()) {
                     break;
-                } else {
-                    System.out.println("Voltando ao menu inicial...");
                 }
             } else if (opcao == 2) {
                 cadastrarNovoVendedor();
@@ -57,8 +56,7 @@ public class MainCLI {
             System.out.println("2. CRUD Categorias");
             System.out.println("3. CRUD Produtos");
             System.out.println("4. CRUD Fornecedores");
-            System.out.println("5. CRUD Compras (Fornecedor x Produto)");
-            System.out.println("6. CRUD Pedidos (Com Cascata e Histórico)");
+            System.out.println("5. CRUD Pedidos (Com Cascata e Histórico)");
             System.out.println("0. Sair");
             System.out.printf("Escolha: ");
             opcaoMenu = lerInteiro();
@@ -73,8 +71,6 @@ public class MainCLI {
                 case 4 ->
                     menuFornecedores();
                 case 5 ->
-                    menuCompras();
-                case 6 ->
                     menuPedidos();
                 case 0 ->
                     System.out.println("Encerrando o Sistema Gerenciador de Loja...");
@@ -129,223 +125,11 @@ public class MainCLI {
         }
     }
 
-    private static void menuPedidos() {
-        int opcao;
-        do {
-            System.out.println("\n--- GESTÃO DE PEDIDOS ---");
-            System.out.println("1. Novo Pedido (Cria itens, pagamento e primeiro status)");
-            System.out.println("2. Listar Pedidos");
-            System.out.println("3. Atualizar Pedido (Gera novo status)");
-            System.out.println("4. Excluir Pedido (Apaga em cascata)");
-            System.out.println("0. Voltar");
-            System.out.printf("Escolha: ");
-            opcao = lerInteiro();
-
-            switch (opcao) {
-                case 1 ->
-                    criarPedidoCompleto();
-                case 2 ->
-                    listarPedidos();
-                case 3 ->
-                    atualizarPedido();
-                case 4 ->
-                    excluirPedidoCascata();
-            }
-        } while (opcao != 0);
-    }
-
-    private static void criarPedidoCompleto() {
-        try {
-            System.out.printf("ID do Cliente: ");
-            int idCli = lerInteiro();
-
-            int idVend = vendedorLogado.getIdPessoa();
-            System.out.println("Usando Vendedor logado ID: " + idVend);
-
-            Pedido pedido = new Pedido(0, idCli, idVend, LocalDateTime.now(), 0.0);
-            pedidoDAO.inserir(pedido);
-            int idPedido = pedido.getIdPedido();
-            System.out.println("Pedido gerado com ID: " + idPedido);
-
-            double valorTotalPedido = 0.0;
-            String continuar = "";
-            do {
-                System.out.printf("ID do Produto: ");
-                int idProd = lerInteiro();
-
-                Produto p = produtoDAO.listar().stream()
-                        .filter(prod -> prod.getIdProduto() == idProd)
-                        .findFirst()
-                        .orElse(null);
-
-                if (p == null) {
-                    System.out.println("Produto não encontrado com ID " + idProd + ". Tente novamente.");
-                    continue;
-                }
-
-                System.out.printf("Quantidade (Estoque disponível: " + p.getEstoque() + "): ");
-                int qtd = lerInteiro();
-
-                if (qtd > p.getEstoque()) {
-                    System.out.println("Quantidade excede o estoque atual. Tente novamente");
-                    continue;
-                }
-
-                double subtotal = qtd * p.getPrecoUnitario();
-
-                ItemPedido item = new ItemPedido(idPedido, idProd, qtd, p.getPrecoUnitario(), subtotal);
-                itemPedidoDAO.inserir(item);
-                valorTotalPedido += subtotal;
-
-                p.setEstoque(p.getEstoque() - qtd);
-                produtoDAO.atualizar(p);
-
-                System.out.printf("Adicionar outro produto? (S/N): ");
-                continuar = scanner.nextLine().trim().toUpperCase();
-            } while (continuar.equals("S"));
-
-            pedido.setValorTotal(valorTotalPedido);
-            pedidoDAO.atualizar(pedido);
-
-            System.out.println("\n--- Registro de Pagamento ---");
-            System.out.printf("Forma de Pagamento (DINHEIRO, CARTAO_CREDITO, CARTAO_DEBITO, PIX, BOLETO): ");
-            String formaPgto = scanner.nextLine();
-            Pagamento pagamento = new Pagamento(0, idPedido, formaPgto, LocalDateTime.now(), valorTotalPedido, "APROVADO");
-            pagamentoDAO.inserir(pagamento);
-
-            HistoricoStatusPedido historico = new HistoricoStatusPedido(idPedido, LocalDateTime.now(), "PENDENTE");
-            historicoDAO.inserir(historico);
-
-            System.out.println("Pedido completo finalizado com sucesso! Valor Total: R$ " + valorTotalPedido);
-        } catch (Exception e) {
-            System.out.println("Erro ao criar pedido: " + e.getMessage());
-        }
-    }
-
-    private static void atualizarPedido() {
-        try {
-            System.out.printf("ID do Pedido para atualizar: ");
-            int idPedido = lerInteiro();
-
-            System.out.printf("Novo ID do Cliente: ");
-            int idCli = lerInteiro();
-
-            int idVend = vendedorLogado.getIdPessoa();
-            System.out.println("Usando Vendedor logado ID: " + idVend);
-
-            Pedido pedido = new Pedido(idPedido, idCli, idVend, LocalDateTime.now(), 0.0);
-
-            System.out.println("Excluindo itens do pedido...");
-            List<ItemPedido> itens = itemPedidoDAO.listarPorPedido(idPedido);
-            for (ItemPedido item : itens) {
-                Produto p = produtoDAO.listar().stream()
-                        .filter(prod -> prod.getIdProduto() == item.getIdProduto())
-                        .findFirst()
-                        .orElse(null);
-                p.setEstoque(p.getEstoque() + item.getQuantidade());
-                produtoDAO.atualizar(p);
-                itemPedidoDAO.deletar(idPedido, item.getIdProduto());
-            }
-
-            System.out.println("Preparando para adicionar novos itens...");
-            double valorTotalPedido = 0.0;
-            String continuar = "";
-            do {
-                System.out.printf("ID do Produto: ");
-                int idProd = lerInteiro();
-
-                Produto p = produtoDAO.listar().stream()
-                        .filter(prod -> prod.getIdProduto() == idProd)
-                        .findFirst()
-                        .orElse(null);
-
-                if (p == null) {
-                    System.out.println("Produto não encontrado com ID " + idProd + ". Tente novamente.");
-                    continue;
-                }
-
-                System.out.printf("Quantidade (Estoque disponível: " + p.getEstoque() + "): ");
-                int qtd = lerInteiro();
-
-                if (qtd > p.getEstoque()) {
-                    System.out.println("Quantidade excede o estoque atual. Tente novamente");
-                    continue;
-                }
-
-                double subtotal = qtd * p.getPrecoUnitario();
-
-                ItemPedido item = new ItemPedido(idPedido, idProd, qtd, p.getPrecoUnitario(), subtotal);
-                itemPedidoDAO.inserir(item);
-                valorTotalPedido += subtotal;
-
-                p.setEstoque(p.getEstoque() - qtd);
-                produtoDAO.atualizar(p);
-
-                System.out.printf("Adicionar outro produto? (S/N): ");
-                continuar = scanner.nextLine().trim().toUpperCase();
-            } while (continuar.equals("S"));
-
-            pedido.setValorTotal(valorTotalPedido);
-            pedidoDAO.atualizar(pedido);
-
-            System.out.println("\n--- Registro de Pagamento ---");
-            System.out.printf("Forma de Pagamento (DINHEIRO, CARTAO_CREDITO, CARTAO_DEBITO, PIX, BOLETO): ");
-            String formaPgto = scanner.nextLine();
-            Pagamento pagamento = new Pagamento(0, idPedido, formaPgto, LocalDateTime.now(), valorTotalPedido, "APROVADO");
-            pagamentoDAO.inserir(pagamento);
-
-            HistoricoStatusPedido historico = new HistoricoStatusPedido(idPedido, LocalDateTime.now(), "PENDENTE");
-            historicoDAO.inserir(historico);
-
-            System.out.println("Pedido completo finalizado com sucesso! Valor Total: R$ " + valorTotalPedido);
-        } catch (Exception e) {
-            System.out.println("Erro ao atualizar pedido: " + e.getMessage());
-        }
-    }
-
-    private static void excluirPedidoCascata() {
-        try {
-            System.out.printf("ID do Pedido a ser excluído: ");
-            int idPedido = lerInteiro();
-
-            historicoDAO.deletarPorPedido(idPedido);
-
-            List<Pagamento> pagamentos = pagamentoDAO.listar();
-            for (Pagamento p : pagamentos) {
-                if (p.getIdPedido() == idPedido) {
-                    pagamentoDAO.deletar(p.getIdPagamento());
-                }
-            }
-
-            List<ItemPedido> itens = itemPedidoDAO.listarPorPedido(idPedido);
-            for (ItemPedido item : itens) {
-                Produto p = produtoDAO.listar().stream()
-                        .filter(prod -> prod.getIdProduto() == item.getIdProduto())
-                        .findFirst()
-                        .orElse(null);
-                p.setEstoque(p.getEstoque() + item.getQuantidade());
-                produtoDAO.atualizar(p);
-                itemPedidoDAO.deletar(idPedido, item.getIdProduto());
-            }
-
-            pedidoDAO.deletar(idPedido);
-            System.out.println("Pedido e todas as suas dependências foram excluídos com sucesso!");
-        } catch (Exception e) {
-            System.out.println("Erro ao excluir pedido: " + e.getMessage());
-        }
-    }
-
-    private static void listarPedidos() {
-        for (Pedido p : pedidoDAO.listar()) {
-            System.out.println("ID: " + p.getIdPedido() + " | Cliente ID: " + p.getIdCliente() + " | Vendedor ID: " + p.getIdVendedor() + " | Total: R$ " + p.getValorTotal());
-        }
-    }
-
     private static void menuClientes() {
         int op;
         do {
             System.out.println("\n--- GESTÃO DE CLIENTES ---");
-            System.out.printf("1. Inserir | 2. Listar | 3. Atualizar | 4. Excluir | 0. Voltar -> Escolha: ");
+            System.out.printf("1. Inserir | 2. Listar | 3. Atualizar | 4. Deletar | 0. Voltar -> Escolha: ");
             op = lerInteiro();
             try {
                 if (op == 1) {
@@ -357,11 +141,12 @@ public class MainCLI {
                     String email = scanner.nextLine();
                     System.out.printf("Telefone: ");
                     String tel = scanner.nextLine();
-                    Cliente c = new Cliente(0, nome, cpf, email, tel, true, LocalDateTime.now());
+                    Cliente c = new Cliente(0, vendedorLogado.getIdPessoa(), nome, cpf, email, tel, true, LocalDateTime.now());
                     clienteDAO.inserir(c);
                     System.out.println("Cliente salvo!");
                 } else if (op == 2) {
-                    clienteDAO.listar().forEach(c -> System.out.println("ID: " + c.getIdPessoa() + " - " + c.getNome() + " | CPF: " + c.getCpf()));
+                    clienteDAO.listarPorVendedor(vendedorLogado.getIdPessoa())
+                            .forEach(c -> System.out.println("ID: " + c.getIdPessoa() + " - " + c.getNome() + " | CPF: " + c.getCpf()));
                 } else if (op == 3) {
                     System.out.printf("ID para atualizar: ");
                     int id = lerInteiro();
@@ -373,13 +158,52 @@ public class MainCLI {
                     String email = scanner.nextLine();
                     System.out.printf("Novo Telefone: ");
                     String tel = scanner.nextLine();
-                    Cliente c = new Cliente(id, nome, cpf, email, tel, true, LocalDateTime.now());
+                    Cliente c = new Cliente(id, vendedorLogado.getIdPessoa(), nome, cpf, email, tel, true, LocalDateTime.now());
                     clienteDAO.atualizar(c);
                     System.out.println("Cliente atualizado!");
                 } else if (op == 4) {
-                    System.out.printf("ID para excluir: ");
-                    clienteDAO.deletar(lerInteiro());
+                    System.out.printf("ID para deletar: ");
+                    clienteDAO.deletar(lerInteiro(), vendedorLogado.getIdPessoa());
                     System.out.println("Excluído!");
+                }
+            } catch (Exception e) {
+                System.out.println("Erro: " + e.getMessage());
+            }
+        } while (op != 0);
+    }
+
+    private static void menuCategorias() {
+        int op;
+        do {
+            System.out.println("\n--- GESTÃO DE CATEGORIAS ---");
+            System.out.printf("1. Inserir | 2. Listar | 3. Atualizar | 4. Deletar | 0. Voltar -> Escolha: ");
+            op = lerInteiro();
+            try {
+                if (op == 1) {
+                    System.out.printf("Nome: ");
+                    String nome = scanner.nextLine();
+                    System.out.printf("Descrição: ");
+                    String desc = scanner.nextLine();
+                    Categoria c = new Categoria(0, vendedorLogado.getIdPessoa(), nome, desc, null);
+                    categoriaDAO.inserir(c);
+                    System.out.println("Categoria salva!");
+                } else if (op == 2) {
+                    categoriaDAO.listarPorVendedor(vendedorLogado.getIdPessoa())
+                            .forEach(c -> System.out.println("ID: " + c.getIdCategoria() + " - " + c.getNome()));
+                } else if (op == 3) {
+                    System.out.printf("ID para atualizar: ");
+                    int id = lerInteiro();
+                    System.out.printf("Novo Nome: ");
+                    String nome = scanner.nextLine();
+                    System.out.printf("Nova Descrição: ");
+                    String desc = scanner.nextLine();
+                    Categoria c = new Categoria(id, vendedorLogado.getIdPessoa(), nome, desc, null);
+                    categoriaDAO.atualizar(c);
+                    System.out.println("Categoria atualizada!");
+                } else if (op == 4) {
+                    System.out.printf("ID para deletar: ");
+                    categoriaDAO.deletar(lerInteiro(), vendedorLogado.getIdPessoa());
+                    System.out.println("Excluída!");
                 }
             } catch (Exception e) {
                 System.out.println("Erro: " + e.getMessage());
@@ -391,7 +215,7 @@ public class MainCLI {
         int op;
         do {
             System.out.println("\n--- GESTÃO DE PRODUTOS ---");
-            System.out.printf("1. Inserir | 2. Listar | 3. Atualizar | 4. Excluir | 0. Voltar -> Escolha: ");
+            System.out.printf("1. Inserir | 2. Listar | 3. Atualizar | 4. Deletar | 0. Voltar -> Escolha: ");
             op = lerInteiro();
             try {
                 if (op == 1) {
@@ -406,11 +230,12 @@ public class MainCLI {
                     System.out.printf("Qtd Estoque: ");
                     int qtd = lerInteiro();
 
-                    Produto p = new Produto(0, idCat, nome, desc, preco, qtd, true);
+                    Produto p = new Produto(0, vendedorLogado.getIdPessoa(), idCat, nome, desc, preco, qtd, true);
                     produtoDAO.inserir(p);
                     System.out.println("Produto salvo!");
                 } else if (op == 2) {
-                    produtoDAO.listar().forEach(p -> System.out.println("ID: " + p.getIdProduto() + " - " + p.getNome() + " | R$ " + p.getPrecoUnitario() + " | Estoque: " + p.getEstoque()));
+                    produtoDAO.listarPorVendedor(vendedorLogado.getIdPessoa())
+                            .forEach(p -> System.out.println("ID: " + p.getIdProduto() + " - " + p.getNome() + " | R$ " + p.getPrecoUnitario() + " | Estoque: " + p.getEstoque()));
                 } else if (op == 3) {
                     System.out.printf("ID para atualizar: ");
                     int id = lerInteiro();
@@ -424,51 +249,14 @@ public class MainCLI {
                     double preco = lerDouble();
                     System.out.printf("Nova Qtd Estoque: ");
                     int qtd = lerInteiro();
-                    Produto p = new Produto(id, idCat, nome, desc, preco, qtd, true);
+
+                    Produto p = new Produto(id, vendedorLogado.getIdPessoa(), idCat, nome, desc, preco, qtd, true);
                     produtoDAO.atualizar(p);
                     System.out.println("Produto atualizado!");
                 } else if (op == 4) {
-                    System.out.printf("ID para excluir: ");
-                    produtoDAO.deletar(lerInteiro());
+                    System.out.printf("ID para deletar: ");
+                    produtoDAO.deletar(lerInteiro(), vendedorLogado.getIdPessoa());
                     System.out.println("Excluído!");
-                }
-            } catch (Exception e) {
-                System.out.println("Erro: " + e.getMessage());
-            }
-        } while (op != 0);
-    }
-
-    private static void menuCategorias() {
-        int op;
-        do {
-            System.out.println("\n--- GESTÃO DE CATEGORIAS ---");
-            System.out.printf("1. Inserir | 2. Listar | 3. Atualizar | 4. Excluir | 0. Voltar -> Escolha: ");
-            op = lerInteiro();
-            try {
-                if (op == 1) {
-                    System.out.printf("Nome: ");
-                    String nome = scanner.nextLine();
-                    System.out.printf("Descrição: ");
-                    String desc = scanner.nextLine();
-                    Categoria c = new Categoria(0, nome, desc, null);
-                    categoriaDAO.inserir(c);
-                    System.out.println("Categoria salva!");
-                } else if (op == 2) {
-                    categoriaDAO.listar().forEach(c -> System.out.println("ID: " + c.getIdCategoria() + " - " + c.getNome()));
-                } else if (op == 3) {
-                    System.out.printf("ID para atualizar: ");
-                    int id = lerInteiro();
-                    System.out.printf("Novo Nome: ");
-                    String nome = scanner.nextLine();
-                    System.out.printf("Nova Descrição: ");
-                    String desc = scanner.nextLine();
-                    Categoria c = new Categoria(id, nome, desc, null);
-                    categoriaDAO.atualizar(c);
-                    System.out.println("Categoria atualizada!");
-                } else if (op == 4) {
-                    System.out.printf("ID para excluir: ");
-                    categoriaDAO.deletar(lerInteiro());
-                    System.out.println("Excluída!");
                 }
             } catch (Exception e) {
                 System.out.println("Erro: " + e.getMessage());
@@ -480,7 +268,7 @@ public class MainCLI {
         int op;
         do {
             System.out.println("\n--- GESTÃO DE FORNECEDORES ---");
-            System.out.printf("1. Inserir | 2. Listar | 3. Atualizar | 4. Excluir | 0. Voltar -> Escolha: ");
+            System.out.printf("1. Inserir | 2. Listar | 3. Atualizar | 4. Deletar | 0. Voltar -> Escolha: ");
             op = lerInteiro();
             try {
                 if (op == 1) {
@@ -492,11 +280,12 @@ public class MainCLI {
                     String email = scanner.nextLine();
                     System.out.printf("Telefone: ");
                     String tel = scanner.nextLine();
-                    Fornecedor f = new Fornecedor(0, cnpj, nome, email, tel, true);
+                    Fornecedor f = new Fornecedor(0, vendedorLogado.getIdPessoa(), cnpj, nome, email, tel, true);
                     fornecedorDAO.inserir(f);
                     System.out.println("Fornecedor salvo!");
                 } else if (op == 2) {
-                    fornecedorDAO.listar().forEach(f -> System.out.println("ID: " + f.getIdFornecedor() + " - " + f.getNome() + " | CNPJ: " + f.getCnpj()));
+                    fornecedorDAO.listarPorVendedor(vendedorLogado.getIdPessoa())
+                            .forEach(f -> System.out.println("ID: " + f.getIdFornecedor() + " - " + f.getNome() + " | CNPJ: " + f.getCnpj()));
                 } else if (op == 3) {
                     System.out.printf("ID para atualizar: ");
                     int id = lerInteiro();
@@ -508,12 +297,12 @@ public class MainCLI {
                     String email = scanner.nextLine();
                     System.out.printf("Novo Telefone: ");
                     String tel = scanner.nextLine();
-                    Fornecedor f = new Fornecedor(id, cnpj, nome, email, tel, true);
+                    Fornecedor f = new Fornecedor(id, vendedorLogado.getIdPessoa(), cnpj, nome, email, tel, true);
                     fornecedorDAO.atualizar(f);
                     System.out.println("Fornecedor atualizado!");
                 } else if (op == 4) {
-                    System.out.printf("ID para excluir: ");
-                    fornecedorDAO.deletar(lerInteiro());
+                    System.out.printf("ID para deletar: ");
+                    fornecedorDAO.deletar(lerInteiro(), vendedorLogado.getIdPessoa());
                     System.out.println("Excluído!");
                 }
             } catch (Exception e) {
@@ -522,77 +311,244 @@ public class MainCLI {
         } while (op != 0);
     }
 
-    private static void menuCompras() {
-        int op;
+    private static void menuPedidos() {
+        int opcao;
         do {
-            System.out.println("\n--- GESTÃO DE COMPRAS (FORNECEDOR X PRODUTO) ---");
-            System.out.printf("1. Associar | 2. Listar | 3. Atualizar | 4. Excluir | 0. Voltar -> Escolha: ");
-            op = lerInteiro();
-            try {
-                if (op == 1) {
-                    System.out.printf("ID Fornecedor: ");
-                    int idF = lerInteiro();
-                    System.out.printf("ID Produto: ");
-                    int idP = lerInteiro();
+            System.out.println("\n--- GESTÃO DE PEDIDOS ---");
+            System.out.println("1. Criar Pedido");
+            System.out.println("2. Listar Pedidos");
+            System.out.println("3. Atualizar Pedido");
+            System.out.println("4. Deletar Pedido");
+            System.out.println("0. Voltar");
+            System.out.printf("Escolha: ");
+            opcao = lerInteiro();
 
-                    Produto p = produtoDAO.listar().stream()
-                            .filter(prod -> prod.getIdProduto() == idP)
-                            .findFirst()
-                            .orElse(null);
-
-                    System.out.printf("Prazo Entrega (dias): ");
-                    int prazo = lerInteiro();
-                    System.out.printf("Quantidade: ");
-                    int qtd = lerInteiro();
-                    System.out.printf("Preço Custo: ");
-                    double custo = p.getPrecoUnitario() * qtd;
-                    fornecedorProdutoDAO.inserir(new FornecedorProduto(idF, idP, custo, prazo, qtd));
-                    System.out.println("Associação salva!");
-                } else if (op == 2) {
-                    System.out.printf("ID Fornecedor para listar: ");
-                    fornecedorProdutoDAO.listarPorFornecedor(lerInteiro()).forEach(fp
-                            -> System.out.println("Produto ID: " + fp.getIdProduto() + " | Custo: R$ " + fp.getPrecoCusto() + " | Qtd: " + fp.getQuantidade())
-                    );
-                } else if (op == 3) {
-                    System.out.printf("ID Fornecedor: ");
-                    int idF = lerInteiro();
-                    System.out.printf("ID Produto: ");
-                    int idP = lerInteiro();
-                    System.out.printf("Novo Preço Custo: ");
-                    double custo = lerDouble();
-                    System.out.printf("Novo Prazo Entrega (dias): ");
-                    int prazo = lerInteiro();
-                    System.out.printf("Nova Quantidade: ");
-                    int qtd = lerInteiro();
-                    fornecedorProdutoDAO.atualizar(new FornecedorProduto(idF, idP, custo, prazo, qtd));
-                    System.out.println("Associação atualizada!");
-                } else if (op == 4) {
-                    System.out.printf("ID Fornecedor: ");
-                    int idF = lerInteiro();
-                    System.out.printf("ID Produto: ");
-                    int idP = lerInteiro();
-                    fornecedorProdutoDAO.deletar(idF, idP);
-                    System.out.println("Excluído!");
-                }
-            } catch (Exception e) {
-                System.out.println("Erro: " + e.getMessage());
+            switch (opcao) {
+                case 1 ->
+                    inserirPedidoCompleto();
+                case 2 ->
+                    listarPedidoCompleto();
+                case 3 ->
+                    atualizarPedidoCompleto();
+                case 4 ->
+                    deletarPedidoCompleto();
+                case 0 ->
+                    System.out.println("Voltando ao menu principal...");
+                default ->
+                    System.out.println("Opção inválida!");
             }
-        } while (op != 0);
+        } while (opcao != 0);
+    }
+
+    private static void inserirPedidoCompleto() {
+        System.out.println("\n--- CRIAR NOVO PEDIDO COMPLETO ---");
+        try {
+            System.out.printf("ID do Cliente: ");
+            int idCliente = lerInteiro();
+
+            List<ItemPedido> itens = new ArrayList<>();
+            List<Pagamento> pagamentos = new ArrayList<>();
+            double valorTotal = 0.0;
+
+            System.out.println("\n-- Adicionar Itens --");
+            boolean adicionarMaisItens = true;
+            do {
+                System.out.printf("ID do Produto: ");
+                int idProduto = lerInteiro();
+                System.out.printf("Quantidade: ");
+                int qtd = lerInteiro();
+                double preco = produtoDAO.listarPorVendedor(vendedorLogado.getIdPessoa())
+                        .stream()
+                        .filter(p -> p.getIdProduto() == idProduto)
+                        .findFirst()
+                        .orElse(null)
+                        .getPrecoUnitario();
+                System.out.printf("Preço Unitário: R$ %f\n", preco);
+
+                double subtotal = qtd * preco;
+                valorTotal += subtotal;
+
+                itens.add(new ItemPedido(0, idProduto, qtd, preco, subtotal));
+
+                System.out.printf("Adicionar mais itens? (1-Sim / 0-Não): ");
+                adicionarMaisItens = lerInteiro() == 1;
+            } while (adicionarMaisItens);
+
+            System.out.println("\n-- Adicionar Pagamentos --");
+            System.out.println("Valor total do pedido: R$ " + valorTotal);
+            boolean adicionarMaisPagamentos = true;
+            do {
+                System.out.printf("Forma de Pagamento (DINHEIRO, PIX, CARTAO_CREDITO, CARTAO_DEBITO, BOLETO): ");
+                String formaPgto = scanner.nextLine();
+                System.out.printf("Valor deste pagamento: R$ ");
+                double valorPgto = lerDouble();
+                System.out.printf("Status (PROCESSANDO, APROVADO, RECUSADO): ");
+                String statusPgto = scanner.nextLine();
+
+                pagamentos.add(new Pagamento(0, 0, formaPgto, LocalDateTime.now(), valorPgto, statusPgto));
+
+                System.out.printf("Adicionar mais pagamentos? (1-Sim / 0-Não): ");
+                adicionarMaisPagamentos = lerInteiro() == 1;
+            } while (adicionarMaisPagamentos);
+
+            System.out.printf("\nStatus inicial do Pedido (ex: PENDENTE, PAGO): ");
+            String statusPedido = scanner.nextLine();
+            HistoricoStatusPedido historico = new HistoricoStatusPedido(0, LocalDateTime.now(), statusPedido);
+
+            Pedido novoPedido = new Pedido(0, idCliente, vendedorLogado.getIdPessoa(), LocalDateTime.now(), valorTotal);
+
+            pedidoDAO.inserirPedidoCompleto(novoPedido, itens, pagamentos, historico);
+            System.out.println("\nPedido criado com sucesso! ID Gerado: " + novoPedido.getIdPedido());
+
+        } catch (Exception e) {
+            System.out.println("Erro ao criar pedido: " + e.getMessage());
+        }
+    }
+
+    private static void listarPedidoCompleto() {
+        System.out.println("\n--- LISTA DE PEDIDOS COMPLETA ---");
+        try {
+
+            List<Pedido> pedidos = pedidoDAO.listarPorVendedor(vendedorLogado.getIdPessoa());
+
+            if (pedidos.isEmpty()) {
+                System.out.println("Nenhum pedido encontrado para a sua conta.");
+                return;
+            }
+
+            List<Pagamento> todosPagamentos = pagamentoDAO.listar();
+
+            for (Pedido p : pedidos) {
+                System.out.println("\n========================================");
+                System.out.println("PEDIDO ID: " + p.getIdPedido() + " | Cliente ID: " + p.getIdCliente() + " | Data: " + p.getDataEmissao() + " | Valor Total: R$ " + p.getValorTotal());
+
+                System.out.println("  -> ITENS:");
+                List<ItemPedido> itens = itemPedidoDAO.listarPorPedido(p.getIdPedido());
+                for (ItemPedido item : itens) {
+                    System.out.println("     - Produto ID: " + item.getIdProduto() + " | Qtd: " + item.getQuantidade() + " | Subtotal: R$ " + item.getSubtotal());
+                }
+
+                System.out.println("  -> PAGAMENTOS:");
+                todosPagamentos.stream()
+                        .filter(pgto -> pgto.getIdPedido() == p.getIdPedido())
+                        .forEach(pgto -> System.out.println("     - " + pgto.getFormaPagamento() + " | R$ " + pgto.getValor() + " | Status: " + pgto.getStatus()));
+
+                System.out.println("  -> HISTÓRICO DE STATUS:");
+                List<HistoricoStatusPedido> historicos = historicoDAO.listarPorPedido(p.getIdPedido());
+                for (HistoricoStatusPedido h : historicos) {
+                    System.out.println("     - " + h.getStatus() + " em " + h.getDataAlteracao());
+                }
+                System.out.println("========================================");
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao listar pedidos: " + e.getMessage());
+        }
+    }
+
+    private static void atualizarPedidoCompleto() {
+        System.out.println("\n--- ATUALIZAR PEDIDO (SUBSTITUIÇÃO DE ITENS E PAGAMENTOS) ---");
+        try {
+            System.out.printf("Digite o ID do Pedido que deseja atualizar: ");
+            int idPedido = lerInteiro();
+
+            System.out.printf("Novo ID do Cliente: ");
+            int idCliente = lerInteiro();
+
+            List<ItemPedido> novosItens = new ArrayList<>();
+            List<Pagamento> novosPagamentos = new ArrayList<>();
+            double novoValorTotal = 0.0;
+
+            System.out.println("\n-- Registrar Novos Itens --");
+            boolean adicionarMaisItens = true;
+            do {
+                System.out.printf("ID do Produto: ");
+                int idProduto = lerInteiro();
+                System.out.printf("Quantidade: ");
+                int qtd = lerInteiro();
+                double preco = produtoDAO.listarPorVendedor(vendedorLogado.getIdPessoa())
+                        .stream()
+                        .filter(p -> p.getIdProduto() == idProduto)
+                        .findFirst()
+                        .orElse(null)
+                        .getPrecoUnitario();
+                System.out.printf("Preço Unitário: R$ %f\n", preco);
+
+                double subtotal = qtd * preco;
+                novoValorTotal += subtotal;
+
+                novosItens.add(new ItemPedido(idPedido, idProduto, qtd, preco, subtotal));
+
+                System.out.printf("Adicionar mais itens? (1-Sim / 0-Não): ");
+                adicionarMaisItens = lerInteiro() == 1;
+            } while (adicionarMaisItens);
+
+            System.out.println("\n-- Registrar Novos Pagamentos --");
+            System.out.println("Novo valor total do pedido: R$ " + novoValorTotal);
+            boolean adicionarMaisPagamentos = true;
+            do {
+                System.out.printf("Forma de Pagamento (DINHEIRO, PIX, CARTAO_CREDITO, CARTAO_DEBITO, BOLETO): ");
+                String formaPgto = scanner.nextLine();
+                System.out.printf("Valor deste pagamento: R$ ");
+                double valorPgto = lerDouble();
+                System.out.printf("Status (PROCESSANDO, APROVADO, RECUSADO): ");
+                String statusPgto = scanner.nextLine();
+
+                novosPagamentos.add(new Pagamento(0, idPedido, formaPgto, LocalDateTime.now(), valorPgto, statusPgto));
+
+                System.out.printf("Adicionar mais pagamentos? (1-Sim / 0-Não): ");
+                adicionarMaisPagamentos = lerInteiro() == 1;
+            } while (adicionarMaisPagamentos);
+
+            System.out.printf("\nNovo Status do Pedido para adicionar ao histórico (ex: PAGO, FINALIZADO): ");
+            String statusPedido = scanner.nextLine();
+            HistoricoStatusPedido novoHistorico = new HistoricoStatusPedido(idPedido, LocalDateTime.now(), statusPedido);
+
+            Pedido pedidoAtualizado = new Pedido(idPedido, idCliente, vendedorLogado.getIdPessoa(), LocalDateTime.now(), novoValorTotal);
+
+            pedidoDAO.atualizarPedidoCompleto(pedidoAtualizado, novosItens, novosPagamentos, novoHistorico);
+            System.out.println("\nPedido atualizado com sucesso!");
+
+        } catch (Exception e) {
+            System.out.println("Erro ao atualizar pedido: " + e.getMessage());
+        }
+    }
+
+    private static void deletarPedidoCompleto() {
+        System.out.println("\n--- DELETAR PEDIDO COMPLETO ---");
+        try {
+            System.out.printf("Digite o ID do Pedido que deseja excluir: ");
+            int idPedido = lerInteiro();
+
+            System.out.printf("Tem certeza que deseja excluir tudo relacionado a este pedido? O estoque será devolvido. (1-Sim / 0-Não): ");
+            if (lerInteiro() == 1) {
+
+                pedidoDAO.deletarPedidoCompleto(idPedido, vendedorLogado.getIdPessoa());
+                System.out.println("Pedido e todas as suas dependências foram excluídos com sucesso!");
+            } else {
+                System.out.println("Operação cancelada.");
+            }
+        } catch (Exception e) {
+            System.out.println("Erro ao deletar pedido: " + e.getMessage());
+        }
     }
 
     private static int lerInteiro() {
-        try {
-            return Integer.parseInt(scanner.nextLine().trim());
-        } catch (NumberFormatException e) {
-            return -1;
+        while (true) {
+            try {
+                return Integer.parseInt(scanner.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.printf("Entrada inválida. Digite um número inteiro: ");
+            }
         }
     }
 
     private static double lerDouble() {
-        try {
-            return Double.parseDouble(scanner.nextLine().trim().replace(",", "."));
-        } catch (NumberFormatException e) {
-            return -1.0;
+        while (true) {
+            try {
+                return Double.parseDouble(scanner.nextLine().trim().replace(",", "."));
+            } catch (NumberFormatException e) {
+                System.out.printf("Entrada inválida. Digite um número decimal: ");
+            }
         }
     }
 }
