@@ -4,6 +4,7 @@ public class FornecedorProduto {
 
     private int idFornecedor;
     private int idProduto;
+    private int idVendedor;
     private double precoCusto;
     private int prazoEntregaDias;
     private int quantidade;
@@ -11,9 +12,10 @@ public class FornecedorProduto {
     public FornecedorProduto() {
     }
 
-    public FornecedorProduto(int idFornecedor, int idProduto, double precoCusto, int prazoEntregaDias, int quantidade) {
+    public FornecedorProduto(int idFornecedor, int idProduto, int idVendedor, double precoCusto, int prazoEntregaDias, int quantidade) {
         setIdFornecedor(idFornecedor);
         setIdProduto(idProduto);
+        setIdVendedor(idVendedor);
         setPrecoCusto(precoCusto);
         setPrazoEntregaDias(prazoEntregaDias);
         setQuantidade(quantidade);
@@ -39,6 +41,17 @@ public class FornecedorProduto {
             throw new IllegalArgumentException("ID do produto inválido.");
         }
         this.idProduto = idProduto;
+    }
+
+    public int getIdVendedor() {
+        return idVendedor;
+    }
+
+    public void setIdVendedor(int idVendedor) {
+        if (idVendedor < 0) {
+            throw new IllegalArgumentException("ID do vendedor inválido.");
+        }
+        this.idVendedor = idVendedor;
     }
 
     public double getPrecoCusto() {

@@ -8,7 +8,7 @@ public class ConexaoBD {
 
     private static final String URL = "jdbc:mysql://127.0.0.1:3306/sgl_db?useSSL=false&serverTimezone=UTC";
     private static final String USUARIO = "root";
-    private static final String SENHA = "senha_aqui";
+    private static final String SENHA = "Jhony04130211+";
 
     public static Connection conectar() {
         try {

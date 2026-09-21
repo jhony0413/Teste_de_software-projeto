@@ -68,7 +68,7 @@ public class Fornecedor {
     }
 
     public void setEmail(String email) {
-        if (email == null || !email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+        if (email == null || !email.trim().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
             throw new IllegalArgumentException("E-mail do fornecedor inválido.");
         }
         this.email = email.trim();
